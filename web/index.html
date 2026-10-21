@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registro como Proveedor</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #667085; --border: #e3e6ec;
+    --accent: #2f5bea; --accent-soft: #e9efff; --user: #2f5bea; --user-text: #ffffff;
+    --ok: #12805c; --ok-soft: #e6f6ef; --err: #c4320a; --err-soft: #fdeee8;
+    --warn: #b54708; --warn-soft: #fff4e0; --warn-border: #f5b54a; --code: #f1f3f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1218; --panel: #171b23; --text: #e6e9ef; --muted: #98a2b3; --border: #2a303c;
+      --accent: #7b9cff; --accent-soft: #1d2640; --user: #3d63e0; --user-text: #ffffff;
+      --ok: #47c896; --ok-soft: #12291f; --err: #ff8a65; --err-soft: #331a12;
+      --warn: #fdb022; --warn-soft: #2e2210; --warn-border: #a86b12; --code: #222834;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1218; --panel: #171b23; --text: #e6e9ef; --muted: #98a2b3; --border: #2a303c;
+    --accent: #7b9cff; --accent-soft: #1d2640; --user: #3d63e0; --user-text: #ffffff;
+    --ok: #47c896; --ok-soft: #12291f; --err: #ff8a65; --err-soft: #331a12;
+    --warn: #fdb022; --warn-soft: #2e2210; --warn-border: #a86b12; --code: #222834;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .app { display: grid; grid-template-rows: auto 1fr auto; height: 100%; max-width: 980px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  .badge { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+  .badge.local { background: var(--warn-soft); color: var(--warn); }
+  .spacer { flex: 1; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); padding: 6px 12px; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #chat { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .vacio { margin: auto; text-align: center; color: var(--muted); max-width: 560px; }
+  .vacio h2 { color: var(--text); font-size: 18px; margin: 0 0 6px; }
+  .msg { max-width: 88%; padding: 10px 14px; border-radius: 12px; overflow-wrap: anywhere; }
+  .msg.usuario { align-self: flex-end; background: var(--user); color: var(--user-text); border-bottom-right-radius: 4px; white-space: pre-wrap; }
+  .msg.asistente { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); border-bottom-left-radius: 4px; width: 88%; }
+  .msg.asistente.confirmar { border: 2px solid var(--warn-border); box-shadow: 0 0 0 4px var(--warn-soft); }
+  .msg.error { border-color: var(--err); background: var(--err-soft); }
+  .aviso { font-size: 13px; color: var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; }
+  .pide { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-weight: 600; font-size: 14px; }
+  .pide .acciones { display: flex; gap: 8px; margin-left: auto; }
+  .md h3 { font-size: 15.5px; margin: 4px 0 8px; }
+  .md p { margin: 6px 0; }
+  .md ul { margin: 4px 0; padding-left: 20px; }
+  .md blockquote { margin: 6px 0; padding: 4px 10px; border-left: 3px solid var(--warn-border); color: var(--muted); }
+  .md code, .tool pre { background: var(--code); border-radius: 4px; font: 12.5px/1.45 ui-monospace, "Cascadia Code", Menlo, monospace; }
+  .md code { padding: 1px 5px; }
+  .md a { color: var(--accent); }
+  .tools { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .tool { border: 1px solid var(--border); border-radius: 8px; font-size: 13px; overflow: hidden; }
+  .tool summary { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; list-style: none; }
+  .tool summary::-webkit-details-marker { display: none; }
+  .tool summary::before { content: "▸"; color: var(--muted); }
+  .tool[open] summary::before { content: "▾"; }
+  .tool .nombre { font-family: ui-monospace, Menlo, monospace; font-weight: 600; }
+  .tool .estado { font-size: 11.5px; padding: 1px 7px; border-radius: 999px; }
+  .tool .estado.ok { background: var(--ok-soft); color: var(--ok); }
+  .tool .estado.err { background: var(--err-soft); color: var(--err); }
+  .tool .estado.gate { background: var(--warn-soft); color: var(--warn); }
+  .tool .res { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .tool .ms { color: var(--muted); font-size: 11.5px; }
+  .tool .cuerpo { padding: 0 10px 10px; }
+  .tool .cuerpo h4 { margin: 8px 0 4px; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .tool pre { margin: 0; padding: 8px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .pensando { align-self: flex-start; color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .puntos span { display: inline-block; width: 6px; height: 6px; margin: 0 1px; border-radius: 50%; background: var(--muted); animation: salto 1.2s infinite ease-in-out; }
+  .puntos span:nth-child(2) { animation-delay: .15s; } .puntos span:nth-child(3) { animation-delay: .3s; }
+  @keyframes salto { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+  footer { border-top: 1px solid var(--border); padding: 10px 16px 14px; }
+  .rapidos { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .rapidos button { font-size: 13px; padding: 4px 10px; border-radius: 999px; }
+  .rapidos button.destacado { border-color: var(--accent); color: var(--accent); }
+  form { display: flex; gap: 8px; }
+  textarea { flex: 1; resize: none; min-height: 44px; max-height: 160px; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
+  @media (max-width: 600px) {
+    .msg, .msg.asistente { max-width: 100%; width: 100%; }
+    header h1 { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Registro como Proveedor</h1>
+    <span id="proveedor" class="badge">conectando…</span>
+    <span class="spacer"></span>
+    <button id="nueva" type="button" title="Empezar una conversación nueva">Nueva sesión</button>
+  </header>
+
+  <main id="chat" aria-live="polite">
+    <div class="vacio" id="vacio">
+      <h2>Agente de registro como proveedor</h2>
+      <p>Leo la solicitud del cliente, lleno el formulario desde el repositorio maestro y armo el paquete para firma. No envío nada sin tu confirmación.</p>
+      <p>Elige un caso abajo o usa el prompt de la demo.</p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="rapidos" id="rapidos"></div>
+    <form id="form">
+      <textarea id="entrada" rows="1" placeholder='Ej.: Procesa el caso "ec-corp-andina"' aria-label="Mensaje"></textarea>
+      <button class="primary" id="enviar" type="submit">Enviar</button>
+    </form>
+    <div class="meta"><span id="sesion"></span><span id="tokens"></span></div>
+  </footer>
+</div>
+
+<script>
+const PROMPT_DEMO = 'Procesa el caso "ec-corp-andina". Dime qué campos quedaron llenos, cuáles faltan, si el paquete está listo para firma y qué soportes debo actualizar. No envíes nada todavía.'
+const $ = (id) => document.getElementById(id)
+const chat = $("chat"), entrada = $("entrada"), boton = $("enviar")
+
+const store = {
+  get(k) { try { return localStorage.getItem(k) } catch { return null } },
+  set(k, v) { try { localStorage.setItem(k, v) } catch {} },
+  del(k) { try { localStorage.removeItem(k) } catch {} },
+}
+
+let sessionId = store.get("sessionId") || nuevoId()
+let ocupado = false
+store.set("sessionId", sessionId)
+
+function nuevoId() { return "s-" + (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)) }
+
+function escapar(t) {
+  return String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
+}
+
+/** Markdown mínimo y seguro: se escapa todo y luego se aplican formatos conocidos. */
+function inline(t) {
+  return escapar(t)
+    .replace(/`(out\/[^`\s]+)`/g, (todo, r) => {
+      const destino = r.endsWith("paquete/") ? r + "checklist.md" : r
+      if (destino.endsWith("/")) return todo
+      const k = store.get("accessKey")
+      return `<a href="/${destino}${k ? "?key=" + encodeURIComponent(k) : ""}" target="_blank" rel="noopener"><code>${r}</code></a>`
+    })
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[\s(])_([^_]+)_(?=$|[\s.,)])/g, "$1<em>$2</em>")
+}
+
+function markdown(texto) {
+  const out = []
+  let lista = false, cita = false
+  const cerrar = () => { if (lista) { out.push("</ul>"); lista = false } if (cita) { out.push("</blockquote>"); cita = false } }
+  for (const cruda of texto.split("\n")) {
+    const linea = cruda.replace(/\s+$/, "")
+    let m
+    if ((m = linea.match(/^\s*[-*] (.*)$/))) { if (cita) { out.push("</blockquote>"); cita = false } if (!lista) { out.push("<ul>"); lista = true } out.push(`<li>${inline(m[1])}</li>`); continue }
+    if ((m = linea.match(/^> ?(.*)$/))) { if (lista) { out.push("</ul>"); lista = false } if (!cita) { out.push("<blockquote>"); cita = true } out.push(`${inline(m[1])}<br>`); continue }
+    cerrar()
+    if ((m = linea.match(/^#{1,4} (.*)$/))) out.push(`<h3>${inline(m[1])}</h3>`)
+    else if (linea.trim()) out.push(`<p>${inline(linea)}</p>`)
+  }
+  cerrar()
+  return out.join("")
+}
+
+function resumenResultado(t) {
+  if (!t.ok) return typeof t.resultado === "string" ? t.resultado : "error"
+  const r = t.resultado || {}
+  if ("listo_para_firma" in r && "checklist" in r) return `listo_para_firma: ${r.listo_para_firma} · ${r.ruta}`
+  if (Array.isArray(r.llenos)) return `${r.llenos.length} llenos · ${r.faltantes.length} faltantes · ${r.requiere_confirmacion.length} por confirmar`
+  if (r.cliente) return `${r.cliente} · ${r.pais} · ${r.formato} · ${(r.campos || []).length} campos`
+  if (r.aviso) return `formato no soportado · ${r.ruta}`
+  if (r.ruta) return r.ruta
+  return "ok"
+}
+
+function tarjetaHerramienta(t) {
+  const d = document.createElement("details")
+  d.className = "tool"
+  const estado = t.bloqueadaPorConfirmacion ? `<span class="estado gate">bloqueada: sin confirmación</span>` : `<span class="estado ${t.ok ? "ok" : "err"}">${t.ok ? "ok" : "error"}</span>`
+  d.innerHTML = `<summary><span class="nombre">${escapar(t.nombre)}</span>${estado}<span class="res">${escapar(resumenResultado(t))}</span><span class="ms">${t.duracionMs} ms</span></summary>
+    <div class="cuerpo"><h4>Argumentos</h4><pre>${escapar(JSON.stringify(t.argumentos, null, 2))}</pre><h4>Resultado</h4><pre>${escapar(JSON.stringify(t.resultado, null, 2))}</pre></div>`
+  return d
+}
+
+function quitarVacio() { $("vacio")?.remove() }
+
+function agregarUsuario(texto) {
+  quitarVacio()
+  const div = document.createElement("div")
+  div.className = "msg usuario"
+  div.textContent = texto
+  chat.appendChild(div)
+  bajar()
+}
+
+function agregarAsistente({ reply, toolCalls = [], needsConfirmation = false, avisos = [] }, error = false) {
+  quitarVacio()
+  document.querySelectorAll(".pide").forEach((p) => p.remove())
+  const div = document.createElement("div")
+  div.className = "msg asistente" + (needsConfirmation ? " confirmar" : "") + (error ? " error" : "")
+  for (const a of avisos) {
+    const av = document.createElement("div")
+    av.className = "aviso"
+    av.textContent = "⚠ " + a
+    div.appendChild(av)
+  }
+  if (toolCalls.length) {
+    const tools = document.createElement("div")
+    tools.className = "tools"
+    toolCalls.forEach((t) => tools.appendChild(tarjetaHerramienta(t)))
+    div.appendChild(tools)
+  }
+  const md = document.createElement("div")
+  md.className = "md"
+  md.innerHTML = markdown(reply || "")
+  div.appendChild(md)
+  if (needsConfirmation) {
+    const pide = document.createElement("div")
+    pide.className = "pide"
+    pide.innerHTML = `<span>⏸ El agente espera tu confirmación antes de cualquier envío.</span><span class="acciones"><button type="button" class="primary" data-msg="Sí, envía">Sí, envía</button><button type="button" data-msg="No, todavía no">No, todavía no</button></span>`
+    pide.addEventListener("click", (e) => { const m = e.target.closest("button")?.dataset.msg; if (m) enviar(m) })
+    div.appendChild(pide)
+  }
+  chat.appendChild(div)
+  bajar()
+}
+
+function bajar() { chat.scrollTop = chat.scrollHeight }
+
+function mostrarPensando() {
+  const p = document.createElement("div")
+  p.className = "pensando"
+  p.id = "pensando"
+  p.innerHTML = `<span class="puntos"><span></span><span></span><span></span></span> El agente está pensando y ejecutando herramientas…`
+  chat.appendChild(p)
+  bajar()
+}
+
+function cabeceras() {
+  const h = { "content-type": "application/json" }
+  const k = store.get("accessKey")
+  if (k) h["x-access-key"] = k
+  return h
+}
+
+async function pedir(url, opciones = {}) {
+  let r = await fetch(url, { ...opciones, headers: cabeceras() })
+  if (r.status === 401) {
+    const k = prompt("Este agente está protegido. Ingresa la clave de acceso:")
+    if (!k) return r
+    store.set("accessKey", k)
+    r = await fetch(url, { ...opciones, headers: cabeceras() })
+  }
+  return r
+}
+
+async function enviar(texto) {
+  texto = texto.trim()
+  if (!texto || ocupado) return
+  ocupado = true
+  boton.disabled = true
+  entrada.value = ""
+  ajustar()
+  agregarUsuario(texto)
+  mostrarPensando()
+  try {
+    const r = await pedir("/api/chat", { method: "POST", body: JSON.stringify({ sessionId, message: texto }) })
+    const datos = await r.json().catch(() => ({}))
+    $("pensando")?.remove()
+    if (!r.ok) agregarAsistente({ reply: datos.error || `Error ${r.status}` }, true)
+    else {
+      agregarAsistente(datos)
+      $("tokens").textContent = datos.tokens && (datos.tokens.entrada + datos.tokens.salida) > 0 ? `tokens de la sesión: ${datos.tokens.entrada + datos.tokens.salida}` : ""
+    }
+  } catch {
+    $("pensando")?.remove()
+    agregarAsistente({ reply: "No pude conectar con el servidor. Revisa que esté levantado y vuelve a intentar." }, true)
+  } finally {
+    ocupado = false
+    boton.disabled = false
+    entrada.focus()
+  }
+}
+
+function ajustar() { entrada.style.height = "auto"; entrada.style.height = Math.min(entrada.scrollHeight, 160) + "px" }
+
+async function cargarHistorial() {
+  $("sesion").textContent = `sesión ${sessionId.slice(0, 10)}…`
+  const r = await pedir(`/api/sessions/${encodeURIComponent(sessionId)}`)
+  if (!r.ok) return
+  const s = await r.json()
+  const ultimoAsistente = s.turnos.map((t) => t.rol).lastIndexOf("asistente")
+  s.turnos.forEach((t, i) => {
+    if (t.rol === "usuario") agregarUsuario(t.contenido)
+    else agregarAsistente({ reply: t.contenido, toolCalls: t.llamadas || [], avisos: t.avisos || [], needsConfirmation: i === ultimoAsistente && s.needsConfirmation })
+  })
+}
+
+async function iniciar() {
+  try {
+    const h = await (await fetch("/api/health")).json()
+    const b = $("proveedor")
+    b.textContent = h.modo === "determinista" ? "modo determinista (sin LLM)" : `${h.provider} · ${h.model}`
+    b.classList.toggle("local", h.modo === "determinista")
+  } catch { $("proveedor").textContent = "sin conexión" }
+
+  const rapidos = $("rapidos")
+  const demo = document.createElement("button")
+  demo.type = "button"
+  demo.className = "destacado"
+  demo.textContent = "▶ Prompt demo (§11)"
+  demo.title = PROMPT_DEMO
+  demo.onclick = () => enviar(PROMPT_DEMO)
+  rapidos.appendChild(demo)
+  try {
+    const r = await pedir("/api/casos")
+    const { casos } = await r.json()
+    for (const c of casos) {
+      const b = document.createElement("button")
+      b.type = "button"
+      b.textContent = c
+      b.onclick = () => enviar(`Procesa el caso "${c}"`)
+      rapidos.appendChild(b)
+    }
+  } catch {}
+  const envia = document.createElement("button")
+  envia.type = "button"
+  envia.textContent = "Envía"
+  envia.title = "Pide simular el envío (solo procede si confirmas tras la pregunta del agente)"
+  envia.onclick = () => enviar("Envía")
+  rapidos.appendChild(envia)
+  await cargarHistorial()
+}
+
+$("form").addEventListener("submit", (e) => { e.preventDefault(); enviar(entrada.value) })
+entrada.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(entrada.value) } })
+entrada.addEventListener("input", ajustar)
+$("nueva").addEventListener("click", () => {
+  sessionId = nuevoId()
+  store.set("sessionId", sessionId)
+  chat.innerHTML = `<div class="vacio" id="vacio"><h2>Sesión nueva</h2><p>Elige un caso o escribe tu solicitud.</p></div>`
+  $("sesion").textContent = `sesión ${sessionId.slice(0, 10)}…`
+  $("tokens").textContent = ""
+})
+iniciar()
+</script>
+</body>
+</html>
