@@ -28,22 +28,50 @@ const VARIABLE_CLAVE: Record<Exclude<NombreProveedor, "local">, string> = {
   gemini: "GEMINI_API_KEY",
 }
 
+const VARIABLE_MODELO: Record<Exclude<NombreProveedor, "local">, string> = {
+  anthropic: "ANTHROPIC_MODEL",
+  openai: "OPENAI_MODEL",
+  gemini: "GEMINI_MODEL",
+}
+
+const ORDEN_AUTO: Array<Exclude<NombreProveedor, "local">> = ["anthropic", "openai", "gemini"]
+
 function entero(v: string | undefined, porDefecto: number): number {
   const n = Number.parseInt(v ?? "", 10)
   return Number.isFinite(n) && n > 0 ? n : porDefecto
 }
 
-/** Lee la configuración de variables de entorno. `LLM_PROVIDER=auto` elige el primero con clave. */
+/** Proveedor al que pertenece un nombre de modelo, para no mandar p. ej. un modelo Claude a Gemini. */
+function proveedorDelModelo(modelo: string): Exclude<NombreProveedor, "local"> {
+  if (modelo.startsWith("claude")) return "anthropic"
+  if (modelo.startsWith("gemini")) return "gemini"
+  return "openai"
+}
+
+/** Modelo: `<PROVEEDOR>_MODEL`, luego `LLM_MODEL` si corresponde a ese proveedor, luego el de por defecto. */
+function elegirModelo(env: NodeJS.ProcessEnv, p: Exclude<NombreProveedor, "local">): string {
+  const especifico = env[VARIABLE_MODELO[p]]?.trim()
+  if (especifico) return especifico
+  const generico = env.LLM_MODEL?.trim()
+  if (generico && proveedorDelModelo(generico) === p) return generico
+  return MODELO_POR_DEFECTO[p]
+}
+
+/**
+ * Lee la configuración de variables de entorno. Usa el proveedor pedido en `LLM_PROVIDER` si tiene
+ * clave; si no (o con `auto`), el primero que tenga clave en el orden anthropic → openai → gemini.
+ * Sin ninguna clave, o con `LLM_PROVIDER=local`, queda el modo determinista.
+ */
 export function leerConfig(env: NodeJS.ProcessEnv = process.env): ConfigLLM {
-  const pedido = (env.LLM_PROVIDER ?? "auto").toLowerCase()
-  const candidatos: Array<Exclude<NombreProveedor, "local">> =
-    pedido === "anthropic" || pedido === "openai" || pedido === "gemini" ? [pedido] : ["anthropic", "openai", "gemini"]
-  const elegido = pedido === "local" ? undefined : candidatos.find((p) => (env[VARIABLE_CLAVE[p]] ?? "").trim() !== "")
+  const pedido = (env.LLM_PROVIDER ?? "auto").trim().toLowerCase()
+  const tieneClave = (p: Exclude<NombreProveedor, "local">) => (env[VARIABLE_CLAVE[p]] ?? "").trim() !== ""
+  const preferido = ORDEN_AUTO.find((p) => p === pedido)
+  const elegido = pedido === "local" ? undefined : preferido && tieneClave(preferido) ? preferido : ORDEN_AUTO.find(tieneClave)
   const proveedor: NombreProveedor = elegido ?? "local"
   const esfuerzo = env.LLM_EFFORT
   return {
     proveedor,
-    modelo: (proveedor !== "local" && env.LLM_MODEL?.trim()) || MODELO_POR_DEFECTO[proveedor],
+    modelo: elegido ? elegirModelo(env, elegido) : MODELO_POR_DEFECTO.local,
     apiKey: elegido ? (env[VARIABLE_CLAVE[elegido]] ?? "").trim() : null,
     timeoutMs: entero(env.LLM_TIMEOUT_MS, 45_000),
     esfuerzo: esfuerzo === "medium" || esfuerzo === "high" || esfuerzo === "xhigh" || esfuerzo === "max" ? esfuerzo : "low",

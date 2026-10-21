@@ -87,13 +87,30 @@ respaldo sin clave o sin red, y como prueba de que el ciclo no depende del prove
 
 ## 4. Elección del modelo y costo
 
-- **Proveedor por defecto: Anthropic, `claude-opus-5-5`, con `effort: low`**, prompt caching del system
-  prompt y `fallbacks: "default"` del servidor ante una negativa por política. Se eligió por tres
-  razones: (a) la tarea premia la obediencia estricta a reglas ("no inventes", "no envíes sin
-  confirmar") más que la creatividad; (b) el uso de herramientas en varios pasos es confiable;
-  (c) con 8–12 casos al mes, el costo es irrelevante frente a una hora de trabajo humano.
-  `effort: low` basta porque el flujo es lineal y el razonamiento pesado lo hacen las herramientas.
-- **Cambiar de proveedor** es solo configuración (`LLM_PROVIDER`, `LLM_MODEL`); el ciclo no cambia.
+**El agente no depende de un proveedor.** Acepta Anthropic, OpenAI (ChatGPT) o Google Gemini detrás de
+la misma interfaz `enviar(mensajes, herramientas)`. Elegir uno es solo configuración: basta con definir
+**una** de `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` o `GEMINI_API_KEY`, y opcionalmente el modelo de ese
+proveedor (`ANTHROPIC_MODEL`, `OPENAI_MODEL`, `GEMINI_MODEL`). Con `LLM_PROVIDER=auto` se usa el
+primero con clave (anthropic → openai → gemini). Si se pide un proveedor sin clave, se usa otro que sí
+la tenga, y un modelo de otro proveedor se ignora. Sin ninguna clave, el agente responde en modo
+determinista con las mismas herramientas.
+
+| Proveedor | Modelo por defecto | Implementación | Notas |
+|---|---|---|---|
+| Anthropic | `claude-opus-5-5`, `effort: low` | SDK oficial `@anthropic-ai/sdk` | Prompt caching del system prompt; `fallbacks: "default"` ante una negativa por política; devuelve los bloques de *thinking* sin cambios entre iteraciones. |
+| OpenAI (ChatGPT) | `gpt-4.1-mini` | `fetch` a Chat Completions | `OPENAI_BASE_URL` permite Azure OpenAI o un proxy corporativo. |
+| Google Gemini | `gemini-2.5-flash` | `fetch` a `generateContent` | Tiene plan gratuito; devuelve las `thoughtSignature` que exige en llamadas a funciones. |
+
+**Recomendación para producción: Anthropic (`claude-opus-5-5`, `effort: low`)**, por tres razones:
+(a) la tarea premia la obediencia estricta a reglas ("no inventes", "no envíes sin confirmar") más que la
+creatividad; (b) el uso de herramientas en varios pasos es confiable; (c) con 8–12 casos al mes, el
+costo es irrelevante frente a una hora de trabajo humano. `effort: low` basta porque el flujo es lineal
+y el razonamiento pesado lo hacen las herramientas. Para priorizar costo cero en pruebas, Gemini Flash
+con plan gratuito es la alternativa.
+
+**Estado del despliegue de prueba:** hoy el link corre **sin clave de LLM**, es decir, en modo
+determinista. Activar cualquier proveedor es agregar su clave en las variables de entorno de Render,
+que reinicia el servicio solo; no requiere cambios de código.
 
 **Costo estimado por caso** (prompt §11 + "envía"; estimación por tamaño de los mensajes, no medida
 con facturación real):

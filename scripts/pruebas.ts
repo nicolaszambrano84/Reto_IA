@@ -11,7 +11,7 @@ import { procesarTurno, type ConfigCiclo } from "../src/agent/ciclo"
 import type { Sesion } from "../src/agent/sesiones"
 import { ErrorProveedor, type Mensaje, type ProveedorLLM, type RespuestaModelo } from "../src/llm/adapter"
 import { ProveedorLocal } from "../src/llm/local"
-import { ProveedorConRespaldo } from "../src/llm/provider"
+import { leerConfig, ProveedorConRespaldo } from "../src/llm/provider"
 import * as proveedor from "../src/tools/proveedor"
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
@@ -134,6 +134,22 @@ const pruebas: Array<[string, (dir: string) => Promise<void>]> = [
       const m = JSON.parse(await proveedor.mapear_campos.execute({ caso: "ec-corp-andina" }, ctx))
       const cuenta = m.data.llenos.find((c: { etiqueta: string }) => c.etiqueta === "Número de cuenta")
       assert.equal(cuenta.valor, "*******2345")
+    },
+  ],
+  [
+    "Selección de proveedor: cualquier clave activa su proveedor sin tocar código",
+    async () => {
+      assert.equal(leerConfig({}).proveedor, "local")
+      assert.equal(leerConfig({ GEMINI_API_KEY: "g" }).proveedor, "gemini")
+      assert.equal(leerConfig({ GEMINI_API_KEY: "g" }).modelo, "gemini-2.5-flash")
+      assert.equal(leerConfig({ OPENAI_API_KEY: "o", OPENAI_MODEL: "gpt-5-mini" }).modelo, "gpt-5-mini")
+      assert.equal(leerConfig({ ANTHROPIC_API_KEY: "a", GEMINI_API_KEY: "g" }).proveedor, "anthropic")
+      assert.equal(leerConfig({ LLM_PROVIDER: "gemini", ANTHROPIC_API_KEY: "a", GEMINI_API_KEY: "g" }).proveedor, "gemini")
+      // Pedido sin clave → se usa el que sí la tiene; un LLM_MODEL de otro proveedor se ignora.
+      const c = leerConfig({ LLM_PROVIDER: "anthropic", LLM_MODEL: "claude-opus-5-5", GEMINI_API_KEY: "g" })
+      assert.equal(c.proveedor, "gemini")
+      assert.equal(c.modelo, "gemini-2.5-flash")
+      assert.equal(leerConfig({ LLM_PROVIDER: "local", ANTHROPIC_API_KEY: "a" }).proveedor, "local")
     },
   ],
   [

@@ -46,9 +46,10 @@ Todas son opcionales; ver [.env.example](.env.example).
 
 | Variable | Por defecto | Uso |
 |---|---|---|
-| `LLM_PROVIDER` | `auto` | `auto` (el primero con clave: anthropic → openai → gemini), `anthropic`, `openai`, `gemini` o `local`. |
+| `LLM_PROVIDER` | `auto` | `auto` (el primero con clave: anthropic → openai → gemini), `anthropic`, `openai`, `gemini` o `local`. Si el pedido no tiene clave, se usa otro que sí la tenga. |
 | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GEMINI_API_KEY` | — | Clave del proveedor. Solo se lee en el backend; nunca va al front, a los logs ni a las respuestas. |
-| `LLM_MODEL` | `claude-opus-5-5` · `gpt-4.1-mini` · `gemini-2.5-flash` | Modelo del proveedor elegido. |
+| `ANTHROPIC_MODEL` / `OPENAI_MODEL` / `GEMINI_MODEL` | `claude-opus-5-5` · `gpt-4.1-mini` · `gemini-2.5-flash` | Modelo de cada proveedor. |
+| `LLM_MODEL` | — | Modelo genérico; solo se aplica si corresponde al proveedor activo. |
 | `LLM_EFFORT` | `low` | Esfuerzo de razonamiento (solo Anthropic). |
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Endpoint compatible con OpenAI (Azure, proxy). |
 | `LLM_TIMEOUT_MS` | `45000` | Timeout por llamada al proveedor. Si se excede, responde el modo determinista con un aviso. |
@@ -84,11 +85,12 @@ correcto de RN3.
 El repositorio incluye `Dockerfile` y `render.yaml` (blueprint).
 
 1. En [dashboard.render.com](https://dashboard.render.com): **New → Blueprint** y conecta el repositorio de GitHub.
-2. Render lee `render.yaml` y pide los dos secretos:
-   - `ANTHROPIC_API_KEY`: tu clave de Anthropic.
-   - `ACCESS_KEY`: la clave de acceso al link, que se entrega a los evaluadores.
-3. **Apply**. Cuando el deploy termine, `https://<servicio>.onrender.com/api/health` debe responder
-   `{"ok":true,"provider":"anthropic",...}`.
+2. Render lee `render.yaml` y pide `ACCESS_KEY`, la clave de acceso al link que se entrega a los evaluadores.
+3. **Apply**. Sin clave de LLM, el servicio responde en modo determinista
+   (`/api/health` → `"provider":"local"`).
+4. Para activar un modelo, en **Environment** agrega **una** de `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`
+   o `GEMINI_API_KEY`. Render reinicia el servicio y `/api/health` muestra el proveedor y el modelo
+   activos. No hay que tocar código.
 
 Render asigna `PORT` solo. Cada `git push` a `main` vuelve a desplegar. Las claves viven solo en
 Render, nunca en el repositorio.
