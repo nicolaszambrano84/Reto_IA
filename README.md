@@ -74,7 +74,8 @@ correcto de RN3.
 
 ## Link de prueba
 
-> **URL:** _completar_ · **Clave de acceso:** _completar_ (el chat la pide una vez y la recuerda)
+> **URL:** https://reto01-registro-proveedor-mmlh.onrender.com
+> **Clave de acceso:** `periferia-reto01-2026` (el chat la pide una vez y la recuerda)
 >
 > El plan gratuito de Render se duerme tras 15 minutos sin uso: la primera visita tarda 30–60 s en despertar.
 
